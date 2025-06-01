@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,10 +14,12 @@
       max-width: 1000px;
       margin: auto;
     }
+
     h1 {
       font-size: 2em;
       margin-bottom: 20px;
     }
+
     input {
       width: 100%;
       padding: 10px;
@@ -25,17 +28,20 @@
       border: 1px solid #ccc;
       border-radius: 8px;
     }
+
     .log-card {
       background: white;
       padding: 15px;
       margin-bottom: 10px;
       border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
+
     .highlight {
       background-color: yellow;
       font-weight: bold;
     }
+
     .badge {
       display: inline-block;
       background-color: #007bff;
@@ -77,6 +83,20 @@
       return text.replace(regex, '<span class="highlight">$1</span>');
     }
 
+    function formatLocalDate(utcString) {
+      const date = new Date(utcString); // уже учитывает твой часовой пояс
+
+      const pad = n => n.toString().padStart(2, '0');
+
+      const day = pad(date.getDate());
+      const month = pad(date.getMonth() + 1);
+      const year = date.getFullYear();
+      const hours = pad(date.getHours());
+      const minutes = pad(date.getMinutes());
+
+      return `${day}.${month}.${year} ${hours}:${minutes}`;
+    }
+
     function renderLogs(logs, search) {
       logsContainer.innerHTML = "";
       if (logs.length === 0) {
@@ -84,7 +104,8 @@
         return;
       }
       logs.forEach(log => {
-        const timestamp = log.timestamp?.seconds ? new Date(log.timestamp.seconds * 1000).toLocaleString() : "";
+        const timestamp = log.timestamp ? formatLocalDate(log.timestamp) : "";
+
         const html = `
           <div class="log-card">
             <p><strong>Время:</strong> ${timestamp}</p>
@@ -121,9 +142,11 @@
     });
   </script>
 </head>
+
 <body>
   <h1>Firebase Логи</h1>
   <input type="text" id="search" placeholder="Поиск по логам..." />
   <div id="logs"></div>
 </body>
+
 </html>
