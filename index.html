@@ -105,14 +105,24 @@
       }
       logs.forEach(log => {
         const timestamp = log.timestamp ? formatLocalDate(log.timestamp) : "";
-
+        let pole 
+        if (log.field == 'location') {
+          pole = 'Location'
+        }else if (log.field == 'statusAnd') {
+          pole = 'Status'
+        }else if (log.field == 'bottomTabText') {
+          pole = 'Notes'
+        }else if (log.field == 'queue') {
+          pole = 'Queue'
+        }else {
+          pole = log.field
+        }
         const html = `
           <div class="log-card">
             <p><strong>Время:</strong> ${timestamp}</p>
             <p><strong>Пользователь:</strong> ${highlightText(log.user || "", search)}</p>
             <p><strong>Имя водителя:</strong> ${highlightText(log.driverName || "", search)}</p>
-            <p><strong>Поле:</strong> ${highlightText(log.field || "", search)}</p>
-            <p><strong>ID/Пароль:</strong> ${highlightText(log.idPass || "", search)}</p>
+            <p><strong>Поле:</strong> ${highlightText(pole || "", search)}</p>
             <p><strong>Старое значение:</strong> ${highlightText(log.oldValue || "", search)}</p>
             <p><strong>Новое значение:</strong> <span class="badge">${highlightText(log.newValue || "", search)}</span></p>
           </div>
