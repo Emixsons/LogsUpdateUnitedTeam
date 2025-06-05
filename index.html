@@ -5,7 +5,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Firebase Логи</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -17,13 +18,30 @@
 
     h1 {
       font-size: 2em;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
+      display: inline-block;
     }
 
-    input {
+    #settingsBtn {
+      float: right;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1em;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #settingsBtn:hover {
+      background-color: #0056b3;
+    }
+
+    input[type="text"] {
       width: 100%;
       padding: 10px;
-      margin-bottom: 20px;
+      margin: 20px 0;
       font-size: 1em;
       border: 1px solid #ccc;
       border-radius: 8px;
@@ -50,22 +68,83 @@
       border-radius: 8px;
       font-size: 0.9em;
     }
+
+    .modal {
+      position: fixed;
+      display: none;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 400px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .settings-input {
+      padding: 8px;
+      font-size: 1em;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    #applyBtn {
+      margin-top: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #applyBtn:hover {
+      background-color: #0056b3;
+    }
   </style>
+</head>
+
+<body>
+  <h1>Firebase Логи</h1>
+  <button id="settingsBtn">🛠 Настройки</button>
+  <input type="text" id="search" placeholder="Поиск по логам..." />
+  <div id="logs"></div>
+
+  <div id="settingsModal" class="modal">
+    <div class="modal-content">
+      <label>Пароль:</label>
+      <input type="password" id="passwordInput" class="settings-input" />
+      <label>Удалить логи старше (дней):</label>
+      <input type="number" id="daysInput" class="settings-input" />
+      <button id="applyBtn">Применить</button>
+      <p id="settingsMessage"></p>
+    </div>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore,
-      collection,
-      query,
-      orderBy,
-      onSnapshot
+      getFirestore, collection, query, orderBy, onSnapshot,
+      getDocs, deleteDoc, doc, setDoc, getDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDzvxt9__Bqcoq2GfUEJQVr9E2ZAp2-5Ts",
       authDomain: "accaunt-d22dc.firebaseapp.com",
       projectId: "accaunt-d22dc",
-      storageBucket: "accaunt-d22dc.firebasestorage.app",
+      storageBucket: "accaunt-d22dc.appspot.com",
       messagingSenderId: "780524183858",
       appId: "1:780524183858:web:9b13657aca9abb5a69b72b",
       measurementId: "G-GP4GHJE6BF"
@@ -76,6 +155,16 @@
 
     const logsContainer = document.getElementById("logs");
     const searchInput = document.getElementById("search");
+    const settingsBtn = document.getElementById("settingsBtn");
+    const settingsModal = document.getElementById("settingsModal");
+    const passwordInput = document.getElementById("passwordInput");
+    const daysInput = document.getElementById("daysInput");
+    const applyBtn = document.getElementById("applyBtn");
+    const settingsMessage = document.getElementById("settingsMessage");
+
+    const secret = atob("MjAyNQ==");
+
+    let allLogs = [];
 
     function highlightText(text, search) {
       if (!search) return text;
@@ -84,17 +173,9 @@
     }
 
     function formatLocalDate(utcString) {
-      const date = new Date(utcString); // уже учитывает твой часовой пояс
-
+      const date = new Date(utcString);
       const pad = n => n.toString().padStart(2, '0');
-
-      const day = pad(date.getDate());
-      const month = pad(date.getMonth() + 1);
-      const year = date.getFullYear();
-      const hours = pad(date.getHours());
-      const minutes = pad(date.getMinutes());
-
-      return `${day}.${month}.${year} ${hours}:${minutes}`;
+      return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
     }
 
     function renderLogs(logs, search) {
@@ -105,18 +186,14 @@
       }
       logs.forEach(log => {
         const timestamp = log.timestamp ? formatLocalDate(log.timestamp) : "";
-        let pole 
-        if (log.field == 'location') {
-          pole = 'Location'
-        }else if (log.field == 'statusAnd') {
-          pole = 'Status'
-        }else if (log.field == 'bottomTabText') {
-          pole = 'Notes'
-        }else if (log.field == 'queue') {
-          pole = 'Queue'
-        }else {
-          pole = log.field
-        }
+        const fieldMap = {
+          location: "Location",
+          statusAnd: "Status",
+          bottomTabText: "Notes",
+          queue: "Queue"
+        };
+        const pole = fieldMap[log.field] || log.field;
+
         const html = `
           <div class="log-card">
             <p><strong>Время:</strong> ${timestamp}</p>
@@ -131,32 +208,96 @@
       });
     }
 
-    let allLogs = [];
-
     searchInput.addEventListener("input", () => {
       const searchValue = searchInput.value.toLowerCase();
-      const filtered = allLogs.filter(log => {
-        return Object.values(log).join(" ").toLowerCase().includes(searchValue);
-      });
+      const filtered = allLogs.filter(log =>
+        Object.values(log).join(" ").toLowerCase().includes(searchValue)
+      );
       renderLogs(filtered, searchValue);
     });
 
     const q = query(collection(db, "logs"), orderBy("timestamp", "desc"));
     onSnapshot(q, (snapshot) => {
-      allLogs = snapshot.docs.map(doc => doc.data());
+      allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const searchValue = searchInput.value.toLowerCase();
-      const filtered = allLogs.filter(log => {
-        return Object.values(log).join(" ").toLowerCase().includes(searchValue);
-      });
+      const filtered = allLogs.filter(log =>
+        Object.values(log).join(" ").toLowerCase().includes(searchValue)
+      );
       renderLogs(filtered, searchValue);
     });
-  </script>
-</head>
 
-<body>
-  <h1>Firebase Логи</h1>
-  <input type="text" id="search" placeholder="Поиск по логам..." />
-  <div id="logs"></div>
+    settingsBtn.addEventListener("click", async () => {
+      passwordInput.value = "";
+      daysInput.value = "";
+
+      const docRef = doc(db, "settings", "retention");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        daysInput.value = data.days || "";
+      }
+
+      settingsModal.style.display = "flex";
+      settingsMessage.textContent = "";
+    });
+
+    applyBtn.addEventListener("click", async () => {
+      const enteredPassword = passwordInput.value;
+      const daysValue = parseInt(daysInput.value);
+
+      if (enteredPassword !== secret) {
+        settingsMessage.style.color = "red";
+        settingsMessage.textContent = "Неверный пароль";
+        return;
+      }
+
+      if (isNaN(daysValue) || daysValue <= 0) {
+        settingsMessage.style.color = "red";
+        settingsMessage.textContent = "Введите корректное число дней";
+        return;
+      }
+
+      await setDoc(doc(db, "settings", "retention"), { days: daysValue });
+
+      const cutoffTime = Date.now() - daysValue * 24 * 60 * 60 * 1000;
+      const snapshot = await getDocs(collection(db, "logs"));
+
+      let deleted = 0;
+      for (const docSnap of snapshot.docs) {
+        const data = docSnap.data();
+        if (data.timestamp && new Date(data.timestamp).getTime() < cutoffTime) {
+          await deleteDoc(doc(db, "logs", docSnap.id));
+          deleted++;
+        }
+      }
+
+      settingsMessage.style.color = "green";
+      settingsMessage.textContent = `Удалено ${deleted} записей старше ${daysValue} дней`;
+      setTimeout(() => settingsModal.style.display = "none", 3000);
+    });
+
+    async function startAutoCleanup() {
+      const docRef = doc(db, "settings", "retention");
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) return;
+
+      const days = docSnap.data().days;
+      if (!days || isNaN(days)) return;
+
+      setInterval(async () => {
+        const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+        const snapshot = await getDocs(query(collection(db, "logs"), orderBy("timestamp")));
+        for (const docSnap of snapshot.docs) {
+          const data = docSnap.data();
+          if (data.timestamp && new Date(data.timestamp).getTime() < cutoff) {
+            await deleteDoc(doc(db, "logs", docSnap.id));
+          }
+        }
+      }, 30 * 60 * 1000); // каждые 30 мин
+    }
+
+    startAutoCleanup();
+  </script>
 </body>
 
 </html>
